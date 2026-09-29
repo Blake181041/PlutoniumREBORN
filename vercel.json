@@ -1,0 +1,135 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/vanillia",
+      "has": [
+        {
+          "type": "query",
+          "key": "server",
+          "value": "us-west"
+        }
+      ],
+      "destination": "https://vanillia-us-west.plutoniumnet.work/vanillia"
+    },
+    {
+      "source": "/vanillia",
+      "has": [
+        {
+          "type": "query",
+          "key": "server",
+          "value": "europe"
+        }
+      ],
+      "destination": "https://vanillia-europe.plutoniumnet.work/vanillia"
+    },
+    {
+      "source": "/vanillia",
+      "destination": "https://vanillia-us-west.plutoniumnet.work/vanillia"
+    },
+    {
+      "source": "/service-worker.js",
+      "has": [
+        {
+          "type": "query",
+          "key": "server",
+          "value": "us-west"
+        }
+      ],
+      "destination": "https://vanillia-us-west.plutoniumnet.work/service-worker.js"
+    },
+    {
+      "source": "/service-worker.js",
+      "has": [
+        {
+          "type": "query",
+          "key": "server",
+          "value": "europe"
+        }
+      ],
+      "destination": "https://vanillia-europe.plutoniumnet.work/service-worker.js"
+    },
+    {
+      "source": "/service-worker.js",
+      "destination": "https://vanillia-us-west.plutoniumnet.work/service-worker.js"
+    },
+    {
+      "source": "/favicon",
+      "has": [
+        {
+          "type": "query",
+          "key": "server",
+          "value": "us-west"
+        }
+      ],
+      "destination": "https://vanillia-us-west.plutoniumnet.work/favicon"
+    },
+    {
+      "source": "/favicon",
+      "has": [
+        {
+          "type": "query",
+          "key": "server",
+          "value": "europe"
+        }
+      ],
+      "destination": "https://vanillia-europe.plutoniumnet.work/favicon"
+    },
+    {
+      "source": "/favicon",
+      "destination": "https://vanillia-us-west.plutoniumnet.work/favicon"
+    },
+    {
+      "source": "/api/icon",
+      "has": [
+        {
+          "type": "query",
+          "key": "server",
+          "value": "us-west"
+        }
+      ],
+      "destination": "https://vanillia-us-west.plutoniumnet.work/api/icon"
+    },
+    {
+      "source": "/api/icon",
+      "has": [
+        {
+          "type": "query",
+          "key": "server",
+          "value": "europe"
+        }
+      ],
+      "destination": "https://vanillia-europe.plutoniumnet.work/api/icon"
+    },
+    {
+      "source": "/api/icon",
+      "destination": "https://vanillia-us-west.plutoniumnet.work/api/icon"
+    },
+    {
+      "source": "/ws",
+      "has": [
+        {
+          "type": "query",
+          "key": "server",
+          "value": "us-west"
+        }
+      ],
+      "destination": "https://vanillia-us-west.plutoniumnet.work/ws"
+    },
+    {
+      "source": "/ws",
+      "has": [
+        {
+          "type": "query",
+          "key": "server",
+          "value": "europe"
+        }
+      ],
+      "destination": "https://vanillia-europe.plutoniumnet.work/ws"
+    },
+    {
+      "source": "/ws",
+      "destination": "https://vanillia-us-west.plutoniumnet.work/ws"
+    }
+  ]
+}
