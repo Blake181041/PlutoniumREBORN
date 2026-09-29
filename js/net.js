@@ -191,13 +191,13 @@ function wispPingKey(id) { return 'wisp:' + id }
 
 function getVanilliaRouteUrl() {
   const server = getPickerServerById(currentVanilliaServerId) || getDefaultVanilliaServer()
-  return server ? `https://${server.host}/vanillia?url=` : ''
+  return server ? `${window.location.origin}/vanillia?server=${encodeURIComponent(server.id)}&url=` : ''
 }
 
 function isVanilliaFrameUrl(raw) {
   try {
     const absolute = new URL(raw, window.location.origin)
-    return absolute.pathname === '/vanillia' && VANILLIA_SERVERS.some(server => server.host === absolute.hostname)
+    return absolute.origin === window.location.origin && absolute.pathname === '/vanillia'
   } catch (e) {
     return false
   }
