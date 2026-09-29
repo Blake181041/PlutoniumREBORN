@@ -23,16 +23,15 @@ const RELAY_SERVERS = [
   { id: 'asia',    label: 'Asia',    location: 'Singapore',          flagSrc: 'img/flags/sg.png', lat: 1.3521,   lon: 103.8198  },
 ]
 
-// VanilliaPXY runs its own hosts, and picking one is independent of the wisp
-// relay, so it has its own list, stored choice and probe. `preferred: true`
-// marks the host the app picks on its own: Vercel fronts every region, so it
-// wins outright rather than racing the IP lookup and ping that decide a wisp
-// relay. No row here carries coordinates, because this source is never picked
-// by distance. `vanillia-europe` needs its DNS record before it answers.
+// VanilliaPXY runs on its own regional hosts. The selected host is independent
+// of the Wisp relay used by UV/Scramjet, but it follows the same server model:
+// saved choice first, otherwise the client measures the available regional
+// hosts and uses the fastest healthy one. Vercel is kept as a fallback host,
+// not as a preferred traffic path.
 const VANILLIA_SERVERS = [
-  { id: 'vercel',  label: 'Vercel',  location: 'Global CDN',         host: 'vanillia-vercel.plutoniumnet.work',  flagSrc: 'img/3rd-party/vercel.png', preferred: true },
-  { id: 'us-west', label: 'US West', location: 'Oregon, USA',        host: 'vanillia-us-west.plutoniumnet.work', flagSrc: 'img/flags/us.png' },
-  { id: 'europe',  label: 'Europe',  location: 'Frankfurt, Germany', host: 'vanillia-europe.plutoniumnet.work',  flagSrc: 'img/flags/eu.png' },
+  { id: 'us-west', label: 'US West', location: 'Oregon, USA',        host: 'vanillia-us-west.plutoniumnet.work', flagSrc: 'img/flags/us.png', lat: 43.8041, lon: -120.5542 },
+  { id: 'europe',  label: 'Europe',  location: 'Frankfurt, Germany', host: 'vanillia-europe.plutoniumnet.work',  flagSrc: 'img/flags/eu.png', lat: 50.1109, lon: 8.6821 },
+  { id: 'vercel',  label: 'Vercel',  location: 'Global CDN',         host: 'vanillia-vercel.plutoniumnet.work',  flagSrc: 'img/3rd-party/vercel.png', fallback: true },
 ]
 const VANILLIA_SERVER_KEY = 'plu_vanillia_server'
 
@@ -133,8 +132,8 @@ function loadVanilliaServerId() {
   return fallback ? fallback.id : ''
 }
 
-// The row the app falls back to within a source: `preferred` when the source
-// marks one, otherwise the first row (the wisp relay's documented fallback).
+// The row the app falls back to within a source. A source can explicitly mark
+// a preferred server, otherwise the first configured server is the fallback.
 function getPreferredPickerServer(servers = getPickerServers()) {
   return servers.find(server => server.preferred) || servers[0] || null
 }
@@ -607,13 +606,8 @@ async function pingConfiguredRelayServers() {
     .filter(result => result.ok && Number.isFinite(result.latency))
     .sort((a, b) => a.latency - b.latency)[0] || null
 
-  // The HUD badge marks the row the picker itself would land on. A source with
-  // a preferred row keeps it there rather than on whichever host answered
-  // fastest, because that source is never chosen by a ping race.
-  const preferred = getPreferredPickerServer(servers)
-  bestRelayServerId = preferred && preferred.preferred
-    ? preferred.id
-    : (best ? best.server.id : '')
+  // The HUD badge marks the row the picker itself would land on.
+  bestRelayServerId = best ? best.server.id : ''
   renderRelaySwitcherMenu()
   return best
 }
@@ -652,9 +646,9 @@ function startBackgroundRelayPingLoop() {
   }, RELAY_BACKGROUND_PING_MS)
 }
 
-// Picks the server for whichever source the row is showing: the saved choice
-// first, then the source's preferred row, then the nearest by IP, then the
-// fastest responder.
+// Picks the server for whichever source the row is showing. A saved choice is
+// respected; otherwise VanilliaPXY uses the fastest healthy regional host,
+ // while Wisp keeps its existing geo-then-latency selection.
 async function chooseBestPickerServer() {
   const servers = getPickerServers()
   if (!servers.length) return null
@@ -670,19 +664,26 @@ async function chooseBestPickerServer() {
     return getPickerServerById(savedServer)
   }
 
-  // A source with a preferred row is settled here, before any network work:
-  // VanilliaPXY is fronted by Vercel worldwide, so neither the IP lookup nor a
-  // ping race could improve on it, and either could quietly pick a regional
-  // host instead. Nothing is measured here — the probe that follows fills in
-  // the latency shown next to the row.
-  const preferred = getPreferredPickerServer(servers)
-  if (preferred && preferred.preferred) {
-    setPickerServerId(preferred.id)
-    bestRelayServerId = preferred.id
+  // VanilliaPXY is selected by the actual regional host latency. Unlike the
+  // Wisp relays, its /health endpoint gives us a direct HTTP measurement, so
+  // do not route it through the hosting provider's CDN just because the
+  // frontend happens to be deployed on Vercel or Cloudflare.
+  if (isVanilliaEngine()) {
+    const best = await refreshRelayPingSnapshot()
+    if (best && best.server) {
+      setPickerServerId(best.server.id)
+      currentRelayLatencyMs = best.latency
+      updateRelaySwitcherButton()
+      renderRelaySwitcherMenu()
+      return best.server
+    }
+
+    const fallback = getPreferredPickerServer(servers)
+    setPickerServerId(fallback ? fallback.id : '')
     currentRelayLatencyMs = null
     updateRelaySwitcherButton()
     renderRelaySwitcherMenu()
-    return preferred
+    return fallback
   }
 
   const geo = RELAY_QUERY_OVERRIDE ? null : await getClosestRelayServer(servers)
