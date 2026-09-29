@@ -34,6 +34,8 @@ const VANILLIA_SERVERS = [
   { id: 'vercel',  label: 'Vercel',  location: 'Global CDN',         host: 'vanillia-vercel.plutoniumnet.work',  flagSrc: 'img/3rd-party/vercel.png', fallback: true },
 ]
 const VANILLIA_SERVER_KEY = 'plu_vanillia_server'
+const VANILLIA_SERVER_CONFIG_VERSION_KEY = 'plu_vanillia_server_config_version'
+const VANILLIA_SERVER_CONFIG_VERSION = '2'
 
 const resolvedRelayUrlCache = new Map()
 
@@ -127,7 +129,19 @@ function getCurrentRelayServer() {
 // wisp helpers above always mean the wisp relay.
 function loadVanilliaServerId() {
   const stored = localStorage.getItem(VANILLIA_SERVER_KEY)
-  if (stored && VANILLIA_SERVERS.some(server => server.id === stored)) return stored
+  const version = localStorage.getItem(VANILLIA_SERVER_CONFIG_VERSION_KEY)
+
+  // Older builds deliberately saved Vercel as the default. Remove only that
+  // legacy selection; an explicit regional choice remains untouched.
+  if (version !== VANILLIA_SERVER_CONFIG_VERSION && stored === 'vercel') {
+    localStorage.removeItem(VANILLIA_SERVER_KEY)
+  }
+  if (version !== VANILLIA_SERVER_CONFIG_VERSION) {
+    localStorage.setItem(VANILLIA_SERVER_CONFIG_VERSION_KEY, VANILLIA_SERVER_CONFIG_VERSION)
+  }
+
+  const current = localStorage.getItem(VANILLIA_SERVER_KEY)
+  if (current && VANILLIA_SERVERS.some(server => server.id === current)) return current
   const fallback = getDefaultVanilliaServer()
   return fallback ? fallback.id : ''
 }
