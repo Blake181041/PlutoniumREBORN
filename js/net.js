@@ -842,6 +842,7 @@ function loadNetMode() {
 let selectedNet  = loadNetMode()
 let runtimeReady        = false
 let runtimeController   = null
+let runtimeFrame        = null
 let currentRemoteSessionId = null
 let currentRemoteTargetUrl = null
 
@@ -903,6 +904,16 @@ if (typeof window !== 'undefined' && window.addEventListener) {
 
 window.getNetEngine = getNetEngine
 window.setNetEngine = setNetEngine
+window.loadRuntimeUrl = url => {
+  if (!runtimeReady || !runtimeFrame) return false
+  runtimeFrame.go(url)
+  return true
+}
+window.reloadRuntimePage = () => {
+  if (!runtimeReady || !runtimeFrame) return false
+  runtimeFrame.reload()
+  return true
+}
 
 async function initCore() {
   if (coreReady) return true
@@ -948,6 +959,14 @@ async function initRuntime() {
       files: { wasm: '/runtime/engine.wasm', all: '/runtime/all.js', sync: '/runtime/sync.js' },
     })
     await runtimeController.init()
+
+    // Scramjet requires its managed frame wrapper. A plain iframe with an
+    // encoded URL bypasses the frame metadata Scramjet uses for subframes,
+    // navigation, and its client runtime.
+    const pageFrame = document.getElementById('page-frame')
+    if (!pageFrame) throw new Error('Page frame missing')
+    runtimeFrame = runtimeController.createFrame(pageFrame)
+
     runtimeReady = true
     return true
   } catch (e) {
