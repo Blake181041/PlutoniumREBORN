@@ -272,7 +272,7 @@ async function navigate(url) {
   if (pageFrame) pageFrame.style.display = 'none'
 
   showLoadingScreen(full)
-  if (pageFrame) pageFrame.src = getNetUrl(full)
+  loadNetworkFrame(full)
   lastSyncedFrameUrl = full
   startUrlSyncLoop()
   setAddressIndicator(full)
