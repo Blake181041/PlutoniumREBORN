@@ -1,446 +1,475 @@
-<!DOCTYPE html>
+<!doctype html>
+<!-- PLUTONIUM EDUCATION!-->
 <html lang="en">
 <head>
-<meta name="plu-build" content="8">
-<!--
-  Presence endpoint (the admin console service on Render). Leave empty to
-  disable the live-client feature entirely; the site works normally without it.
-  This is the console ORIGIN only. The client appends /rt/presence/* to it, and
-  those routes sit outside the console's secret path prefix, so the prefix can
-  be rotated without touching this.
--->
-<meta name="plu-presence" content="https://admin.plutoniumnet.work">
 <meta charset="utf-8">
-<title>Plutonium Network</title>
-<meta name="description" content="Plutonium Network: a full browser-style web platform with a built-in secure browsing, games, cloud gaming, streaming, VMs and the Stelena AI assistant.">
-<meta name="theme-color" content="#e8175d">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Plutonium">
-<link rel="manifest" href="/manifest.json">
-<meta property="og:title" content="Plutonium Network">
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://plutoniumnet.work/">
-<meta property="og:description" content="A full browser-style web platform: built-in secure browsing, games, cloud gaming, streaming, VMs and Stelena AI, all in one place.">
-<meta property="og:image" content="https://plutoniumnet.work/img/brand-logo.png">
-<meta property="og:image:width" content="1024">
-<meta property="og:image:height" content="1024">
-<meta property="og:image:alt" content="Plutonium Network logo">
-<meta property="og:site_name" content="Plutonium Network">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Plutonium Network">
-<meta name="twitter:description" content="A full browser-style web platform: built-in secure browsing, games, cloud gaming, streaming, VMs and Stelena AI, all in one place.">
-<meta name="twitter:image" content="https://plutoniumnet.work/img/brand-logo.png">
-<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-<link rel="preconnect" href="https://unpkg.com" crossorigin>
-<link rel="preconnect" href="https://accounting.cdn.plutoniumnet.work" crossorigin>
-<link rel="preconnect" href="https://wisp-us-east.plutoniumnet.work" crossorigin>
-<link rel="preconnect" href="https://wisp-us-west.plutoniumnet.work" crossorigin>
-<link rel="preconnect" href="https://wisp-europe.plutoniumnet.work" crossorigin>
-<link rel="preconnect" href="https://wisp-asia.plutoniumnet.work" crossorigin>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<link rel="shortcut icon" id="app-favicon" href="img/favicon.png" type="image/x-icon">
-<link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
-<link rel="stylesheet" href="css/style.css?v=35">
-<link rel="stylesheet" href="css/glass.css?v=3">
-<link rel="stylesheet" href="css/plu-tokens.css">
-<link rel="stylesheet" href="css/workspace.css">
-<link rel="stylesheet" href="css/history.css?v=3">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
-<script type="module" src="https://cdn.jsdelivr.net/npm/@real-human/liquid-glass@1.2.0/dist/liquid-glass.es.js"></script>
-<script src="js/pwa.js" defer></script>
-<!--
-  Global control plane. Loaded before version.js and device-detect.js so both
-  can consult it, and deliberately NOT deferred: it hydrates its cached copy
-  synchronously and never blocks, so the first gate decision is correct on
-  first paint. It fetches at most once per 15 minutes, never on a timer.
--->
-<script src="js/global-config.js"></script>
-<script src="js/version.js?v=8" defer></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plutonium Education</title>
+<style>
+  :root{
+    --paper:#f4f1e9;
+    --ink:#172026;
+    --muted:#667078;
+    --blue:#245b78;
+    --blue-dark:#193f55;
+    --line:#d5d1c7;
+    --white:#fffdf8;
+    --yellow:#e7c85d;
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    color:var(--ink);
+    background:var(--paper);
+    font-family:Arial,Helvetica,sans-serif;
+  }
+
+  a{color:inherit;text-decoration:none}
+
+  .wrap{width:min(1160px,calc(100% - 48px));margin:auto}
+
+  header{
+    background:var(--white);
+    border-bottom:1px solid var(--line);
+  }
+
+  .top{
+    min-height:76px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:30px;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:13px;
+    font-weight:800;
+    letter-spacing:-.03em;
+    font-size:19px;
+  }
+
+  .brand-symbol{
+    width:35px;
+    height:35px;
+    object-fit:contain;
+    display:block;
+  }
+
+  nav{display:flex;gap:25px;font-size:14px;color:#4e5960}
+  nav a:hover{color:var(--blue)}
+
+  .start{
+    background:var(--blue);
+    color:white;
+    padding:11px 16px;
+    border-radius:4px;
+    font-weight:700;
+  }
+
+  .hero{
+    border-bottom:1px solid var(--line);
+    background:
+      linear-gradient(rgba(36,91,120,.045) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(36,91,120,.045) 1px,transparent 1px),
+      var(--paper);
+    background-size:28px 28px;
+  }
+
+  .hero-inner{
+    min-height:510px;
+    display:grid;
+    grid-template-columns:1.15fr .85fr;
+    align-items:center;
+    gap:70px;
+  }
+
+  .kicker{
+    color:var(--blue);
+    font-size:12px;
+    font-weight:800;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    margin-bottom:20px;
+  }
+
+  h1{
+    margin:0;
+    max-width:700px;
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:clamp(48px,6vw,76px);
+    line-height:.96;
+    letter-spacing:-.055em;
+    font-weight:500;
+  }
+
+  .hero-copy{
+    margin:24px 0 0;
+    max-width:600px;
+    color:#566168;
+    font-size:18px;
+    line-height:1.65;
+  }
+
+  .hero-links{display:flex;gap:11px;margin-top:31px;flex-wrap:wrap}
+
+  .btn{
+    display:inline-block;
+    padding:13px 18px;
+    border:1px solid var(--blue);
+    border-radius:4px;
+    font-size:14px;
+    font-weight:700;
+  }
+
+  .btn.primary{background:var(--blue);color:#fff}
+  .btn.secondary{background:var(--white)}
+
+  .diagram{
+    background:var(--white);
+    border:1px solid var(--line);
+    padding:28px;
+    position:relative;
+    box-shadow:8px 8px 0 rgba(36,91,120,.08);
+  }
+
+  .diagram-label{
+    color:var(--muted);
+    font:11px monospace;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+  }
+
+  .diagram h2{
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:29px;
+    font-weight:500;
+    margin:35px 0 7px;
+  }
+
+  .diagram p{color:var(--muted);font-size:13px;line-height:1.55;margin:0}
+
+  .formula{
+    margin-top:30px;
+    padding:18px 0;
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    font-family:Georgia,serif;
+    font-size:27px;
+    color:var(--blue-dark);
+  }
+
+  .caption{
+    margin-top:12px;
+    color:#8a8d89;
+    font:11px monospace;
+  }
+
+  section{padding:72px 0}
+
+  .section-title{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:25px;
+    margin-bottom:27px;
+  }
+
+  h2.section-heading{
+    margin:0;
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:36px;
+    font-weight:500;
+    letter-spacing:-.035em;
+  }
+
+  .section-note{color:var(--muted);font-size:13px}
+
+  .subjects{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    border-top:1px solid var(--line);
+    border-left:1px solid var(--line);
+  }
+
+  .subject{
+    min-height:210px;
+    padding:23px;
+    background:var(--white);
+    border-right:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    transition:background .15s,transform .15s;
+  }
+
+  .subject:hover{
+    background:#fff;
+    transform:translateY(-2px);
+  }
+
+  .number{
+    color:#92958e;
+    font:12px monospace;
+  }
+
+  .subject h3{
+    margin:48px 0 9px;
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:24px;
+    font-weight:500;
+  }
+
+  .subject p{
+    margin:0;
+    color:var(--muted);
+    font-size:13px;
+    line-height:1.6;
+  }
+
+  .lesson-grid{
+    display:grid;
+    grid-template-columns:1.5fr 1fr;
+    gap:18px;
+  }
+
+  .lesson{
+    min-height:300px;
+    padding:30px;
+    border:1px solid var(--line);
+    background:var(--white);
+  }
+
+  .lesson.featured{
+    color:white;
+    background:var(--blue-dark);
+    border-color:var(--blue-dark);
+  }
+
+  .lesson .label{
+    font:11px monospace;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:#7f8c93;
+  }
+
+  .featured .label{color:#b7cbd5}
+
+  .lesson h3{
+    margin:65px 0 13px;
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:32px;
+    font-weight:500;
+  }
+
+  .lesson p{
+    max-width:570px;
+    margin:0;
+    line-height:1.65;
+    font-size:14px;
+    color:#aab7bd;
+  }
+
+  .lesson:not(.featured) p{color:var(--muted)}
+
+  .arrow{
+    display:inline-block;
+    margin-top:25px;
+    font-size:13px;
+    font-weight:700;
+  }
+
+  .facts{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    border-top:1px solid var(--line);
+  }
+
+  .fact{
+    padding:25px 22px;
+    border-right:1px solid var(--line);
+  }
+
+  .fact:last-child{border-right:0}
+
+  .fact strong{
+    display:block;
+    font-family:Georgia,serif;
+    font-size:34px;
+    font-weight:500;
+    color:var(--blue);
+    margin-bottom:8px;
+  }
+
+  .fact span{color:var(--muted);font-size:13px}
+
+  footer{
+    margin-top:25px;
+    background:#1d2930;
+    color:#c5ced2;
+  }
+
+  .footer{
+    min-height:110px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:25px;
+    font-size:12px;
+  }
+
+  @media(max-width:850px){
+    .hero-inner,.lesson-grid{grid-template-columns:1fr}
+    .hero-inner{padding:65px 0}
+    .subjects{grid-template-columns:repeat(2,1fr)}
+    .diagram{max-width:600px}
+  }
+
+  @media(max-width:580px){
+    .wrap{width:min(100% - 28px,1160px)}
+    nav{display:none}
+    h1{font-size:48px}
+    .subjects{grid-template-columns:1fr}
+    .facts{grid-template-columns:1fr}
+    .fact{border-right:0;border-bottom:1px solid var(--line)}
+    .fact:last-child{border-bottom:0}
+    section{padding:55px 0}
+    .section-title{display:block}
+    .section-note{display:block;margin-top:8px}
+  }
+</style>
 </head>
+
 <body>
-<div id="device-block-overlay" class="device-block-overlay" hidden>
-  <div class="device-block-box">
-    <div class="device-block-icon"><i class="fa-solid fa-desktop"></i></div>
-    <h1 class="device-block-title">Plutonium doesn't support mobile or tablet</h1>
-    <p class="device-block-sub">Please open Plutonium on a desktop or laptop to continue.</p>
+<header>
+  <div class="wrap top">
+    <a class="brand" href="#">
+      <img class="brand-symbol" src="/img/favicon.png" alt="">
+      <span>Plutonium Education</span>
+    </a>
+    <nav>
+      <a href="#subjects">Subjects</a>
+      <a href="#lessons">Lessons</a>
+      <a href="#about">About</a>
+      <a class="start" href="#subjects">Start learning</a>
+    </nav>
   </div>
-</div>
-<script src="js/device-detect.js"></script>
-<div class="bg-container" style="position:fixed;top:0;left:0;width:100vw;height:100vh;overflow:hidden;z-index:-1;">
-  <iframe id="browser-bg-frame" src="bg.html" style="width:100%;height:100%;border:none;"></iframe>
-</div>
+</header>
 
-<div class="browser">
-
-  <div class="chrome glass">
-  <div class="titlebar">
-    <div class="chrome-tabs" style="--tab-content-margin:9px" id="tabs-el">
-      <div class="chrome-tabs-content">
-        <div class="chrome-tab" active data-url="newtab" data-title="New Tab">
-          <div class="chrome-tab-dividers"></div>
-          <div class="chrome-tab-background">
-            <svg version="1.1" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="chrome-tab-geometry-left" viewBox="0 0 214 36"><path d="M17 0h197v36H0v-2c4.5 0 9-3.5 9-8V8c0-4.5 3.5-8 8-8z"/></symbol><symbol id="chrome-tab-geometry-right" viewBox="0 0 214 36"><use xlink:href="#chrome-tab-geometry-left"/></symbol><symbol id="chrome-tab-geometry-left-inactive" viewBox="0 0 214 36"><path d="M17 0h197v32H17c-4.5 0-8-3.5-8-8V8c0-4.5 3.5-8 8-8z"/></symbol><symbol id="chrome-tab-geometry-right-inactive" viewBox="0 0 214 36"><use xlink:href="#chrome-tab-geometry-left-inactive"/></symbol><clipPath id="crop"><rect class="mask" width="100%" height="100%" x="0"/></clipPath></defs><g class="tab-active-svg"><svg width="50%" height="100%"><use xlink:href="#chrome-tab-geometry-left" width="214" height="36" class="chrome-tab-geometry"/></svg><g transform="scale(-1,1)"><svg width="50%" height="100%" x="-100%" y="0"><use xlink:href="#chrome-tab-geometry-right" width="214" height="36" class="chrome-tab-geometry"/></svg></g></g><g class="tab-inactive-svg"><svg width="50%" height="100%"><use xlink:href="#chrome-tab-geometry-left-inactive" width="214" height="36" class="chrome-tab-geometry"/></svg><g transform="scale(-1,1)"><svg width="50%" height="100%" x="-100%" y="0"><use xlink:href="#chrome-tab-geometry-right-inactive" width="214" height="36" class="chrome-tab-geometry"/></svg></g></g></svg>
-          </div>
-          <div class="chrome-tab-content">
-            <div class="chrome-tab-favicon" id="newtab-tab-favicon" style="background-image:url('img/favicon.png')"></div>
-            <div class="chrome-tab-title">New Tab</div>
-            <div class="chrome-tab-drag-handle"></div>
-            <div class="chrome-tab-close"></div>
-          </div>
+<main>
+  <div class="hero">
+    <div class="wrap hero-inner">
+      <div>
+        <div class="kicker">Science education</div>
+        <h1>Learn how the world works.</h1>
+        <p class="hero-copy">
+          Clear explanations for physics, chemistry, biology, Earth science,
+          and space. Start with the basics or follow a question wherever it leads.
+        </p>
+        <div class="hero-links">
+          <a class="btn primary" href="#subjects">Browse subjects</a>
+          <a class="btn secondary" href="#lessons">View lessons</a>
         </div>
-        <button class="newtab-btn chrome-tabs-newtab-btn" id="newtab-btn" title="New tab" aria-label="New tab"><svg class="newtab-icon" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><line x1="9" y1="2" x2="9" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="2" y1="9" x2="16" y2="9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
       </div>
-      <div class="chrome-tabs-bottom-bar"></div>
-    </div>
-    <div class="titlebar-spacer"></div>
-  </div>
 
-  <div class="toolbar">
-    <button class="nav-btn" id="btn-back" disabled><i class="fa-solid fa-arrow-left"></i></button>
-    <button class="nav-btn" id="btn-forward" disabled><i class="fa-solid fa-arrow-right"></i></button>
-    <button class="nav-btn" id="btn-refresh"><i class="fa-solid fa-rotate-right"></i></button>
-    <button class="nav-btn" id="btn-home"><i class="fa-solid fa-house"></i></button>
-    <div class="address-bar-wrap glass">
-      <button class="lock-icon-btn" id="lock-icon-btn" type="button" aria-label="Connection info">
-        <i class="fa-solid fa-circle-info lock-icon" id="lock-icon"></i>
-      </button>
-      <input type="text" id="url-input" name="url" placeholder="Search or enter url." spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="url">
-      <button class="net-info-btn" id="addr-net-info-btn" type="button" title="What is this?" aria-label="Networking info" style="display:none">
-        <i class="fa-solid fa-circle-info"></i>
-      </button>
-      <button class="bookmark-star-btn" id="btn-bookmark-star" title="Bookmark this page" aria-label="Bookmark this page" style="display:none">
-        <i class="fa-regular fa-star"></i>
-      </button>
-      <div class="connection-popup glass" id="connection-popup" hidden>
-        <div class="connection-popup-title" id="connection-popup-title">Connection</div>
-        <div class="connection-popup-desc" id="connection-popup-desc"></div>
-      </div>
-    </div>
-    <div class="toolbar-right">
-      <button class="nav-btn" id="btn-history" title="History" aria-label="History"><i class="fa-solid fa-clock-rotate-left"></i></button>
-      <div class="customize-wrap" id="customize-wrap">
-        <button class="nav-btn" id="btn-customize" title="Customize" aria-label="Customize" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-paintbrush"></i></button>
-      </div>
-      <button class="nav-btn" id="btn-about" title="About" aria-label="About"><i class="fa-solid fa-circle-info"></i></button>
-      <button class="nav-btn" id="btn-user-page" title="Account" aria-label="Account"><i class="fa-solid fa-user"></i></button>
-      <div class="waffle-wrap" id="waffle-wrap">
-        <button class="nav-btn" id="btn-waffle" title="Apps" aria-label="Apps" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-bars"></i></button>
-      </div>
+      <aside class="diagram">
+        <div class="diagram-label">Field note / 001</div>
+        <h2>What is an atom?</h2>
+        <p>
+          Matter is made from atoms. Their structure helps explain why
+          different materials behave in different ways.
+        </p>
+        <div class="formula">protons + neutrons + electrons</div>
+        <div class="caption">A simple model — chemistry · physics</div>
+      </aside>
     </div>
   </div>
-  </div>
 
-  <div class="bookmarks-bar glass" id="bookmarks-bar"></div>
-
-  <div class="content-area">
-    <div class="new-tab-page" id="new-tab-page">
-
-    <div class="home-acct-panel" id="home-acct-panel">
-      <div class="acct-welcome">
-        <div class="acct-avatar acct-avatar--welcome" id="home-acct-avatar" hidden aria-hidden="true"><i class="fa-solid fa-user"></i></div>
-        <h2 class="acct-signin-title" id="home-acct-signin-text" hidden>Welcome to<br>Plutonium Network</h2>
+  <section id="subjects">
+    <div class="wrap">
+      <div class="section-title">
+        <h2 class="section-heading">Subjects</h2>
+        <span class="section-note">Choose a starting point.</span>
       </div>
-      <div class="acct-signin-sub" id="home-acct-signin-sub" hidden>Sign in to sync your bookmarks, pins and settings across devices.</div>
-      <button class="acct-signin-cta" id="home-acct-signin-cta" type="button" hidden><span>Sign in</span><i class="fa-solid fa-arrow-right"></i></button>
-      <div class="acct-signed" id="home-acct-signed" hidden>
-        <div class="acct-sync" id="home-acct-sync">
-          <span class="acct-sync__dot" id="home-acct-sync-dot"></span>
-          <span class="acct-sync__text" id="home-acct-sync-text"></span>
-        </div>
-        <div class="acct-recent" id="home-acct-recent" hidden>
-          <div class="acct-recent__label">Continue From Where You Left Off</div>
-        </div>
-        <button class="acct-signout" id="home-acct-signout" type="button"><i class="fa-solid fa-arrow-right-from-bracket"></i>Sign out</button>
+
+      <div class="subjects">
+        <a class="subject" href="#">
+          <span class="number">01</span>
+          <h3>Physics</h3>
+          <p>Motion, energy, forces, waves, electricity, and the laws that connect them.</p>
+        </a>
+        <a class="subject" href="#">
+          <span class="number">02</span>
+          <h3>Chemistry</h3>
+          <p>Atoms, elements, reactions, bonds, and the changing properties of matter.</p>
+        </a>
+        <a class="subject" href="#">
+          <span class="number">03</span>
+          <h3>Biology</h3>
+          <p>Cells, genetics, organisms, evolution, and the systems that make life possible.</p>
+        </a>
+        <a class="subject" href="#">
+          <span class="number">04</span>
+          <h3>Earth & Space</h3>
+          <p>Our planet, its atmosphere, the solar system, stars, galaxies, and beyond.</p>
+        </a>
       </div>
     </div>
+  </section>
 
-<div class="logo" id="logo" role="img" aria-label="Plutonium"></div>
+  <section id="lessons">
+    <div class="wrap">
+      <div class="section-title">
+        <h2 class="section-heading">From questions to answers</h2>
+        <span class="section-note">Featured learning</span>
+      </div>
 
-<div class="search-stack" aria-label="Quick app launcher">
-  <div class="search-box glass">
-    <i class="fa-solid fa-magnifying-glass"></i>
-    <input type="text" id="newtab-search" name="plu-newtab-query" placeholder="Search the web, enter a url, or use / commands." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore>
-    <button class="net-info-btn" id="newtab-net-info-btn" type="button" title="What is this?" aria-label="Networking info" style="display:none">
-      <i class="fa-solid fa-circle-info"></i>
-    </button>
-    <div class="search-suggest glass" id="search-suggest" hidden></div>
+      <div class="lesson-grid">
+        <article class="lesson featured">
+          <div class="label">Featured lesson · Physics</div>
+          <h3>Why do objects fall?</h3>
+          <p>
+            Explore gravity from the simple idea of a falling object
+            to acceleration, mass, orbits, and planetary motion.
+          </p>
+          <span class="arrow">Open lesson →</span>
+        </article>
 
-    <div class="search-app-flyout" id="search-app-flyout" aria-hidden="true">
-      <div class="search-app-flyout__connector" aria-hidden="true"></div>
-      <div class="search-app-flyout__panel glass" role="menu" aria-label="Quick app shortcuts">
-        <button class="app-tile" type="button" aria-label="Games" data-local-uri="pluto://games" data-name="Games" data-desc="Play hundreds of browser games instantly"><span class="app-tile-icon"><i class="fa-solid fa-gamepad"></i></span></button>
-        <button class="app-tile" type="button" aria-label="Artificial Intelligence" data-local-uri="pluto://ai" data-name="Artificial Intelligence" data-desc="Chat with AI assistants and tools"><span class="app-tile-icon"><i class="fa-solid fa-robot"></i></span></button>
-        <button class="app-tile" type="button" aria-label="Cloud Gaming" data-local-uri="pluto://cloud" data-name="Cloud Gaming" data-desc="Stream high-end games from the cloud"><span class="app-tile-icon"><i class="fa-solid fa-cloud"></i></span></button>
-        <button class="app-tile" type="button" aria-label="Media" data-local-uri="pluto://media" data-name="Media" data-desc="Watch movies, TV, and anime"><span class="app-tile-icon"><i class="fa-solid fa-film"></i></span></button>
-        <button class="app-tile" type="button" aria-label="Virtual Machines" data-local-uri="pluto://vms" data-name="Virtual Machines" data-desc="Access remote virtual machines"><span class="app-tile-icon"><i class="fa-solid fa-server"></i></span></button>
+        <article class="lesson">
+          <div class="label">Explore · Chemistry</div>
+          <h3>What makes a reaction happen?</h3>
+          <p>
+            Learn what happens when atoms rearrange and why some
+            combinations produce entirely new substances.
+          </p>
+          <span class="arrow">Read explanation →</span>
+        </article>
       </div>
     </div>
-  </div>
-</div>
+  </section>
 
-<div class="engine-switch glass" role="group" aria-label="Browsing engine">
-  <div class="engine-slider" id="engine-slider"></div>
-  <button class="engine-btn active" data-engine="core" title="Core browsing engine">
-    <img src="img/3rd-party/core.png" alt="Core" class="engine-logo"> UV
-  </button>
-  <button class="engine-btn" data-engine="runtime" title="Runtime browsing engine">
-    <img src="img/3rd-party/runtime.png" alt="Runtime" class="engine-logo"> SJ
-  </button>
-  <button class="engine-btn" data-engine="remote" title="Remote cloud browser session">
-    <img src="img/3rd-party/remote.png" alt="Remote" class="engine-logo"> Hyperbeam
-  </button>
-  <button class="engine-btn" data-engine="vanillia" title="VanilliaPXY browsing engine (beta)">
-    <img src="img/3rd-party/vanillia.png" alt="VanilliaPXY" class="engine-logo"> VanilliaPXY
-    <span class="engine-badge">beta</span>
-  </button>
-</div>
-
-<div class="engine-relay" id="engine-relay">
-  <div class="relay-switcher-shell" id="relay-switcher-btn" role="button" tabindex="0" title="Choose relay" aria-label="Choose relay" aria-haspopup="true" aria-expanded="false">
-    <div class="relay-switcher-trigger">
-      <span class="relay-switcher-dot" id="relay-switcher-dot" aria-hidden="true"></span>
-      <span class="relay-switcher-icon relay-flag" id="relay-switcher-icon" aria-hidden="true"></span>
-      <span class="relay-switcher-current" id="relay-switcher-current">Auto</span>
-      <span class="relay-switcher-latency" id="relay-switcher-latency"></span>
-      <i class="fa-solid fa-chevron-down relay-switcher-caret"></i>
-    </div>
-  </div>
-</div>
-
-<div class="status-bar newtab-relay glass" id="relay-bar">
-  <span id="status-text"></span>
-  <span class="relay-bar-label" id="relay-bar-label"><i class="fa-solid fa-circle-notch fa-spin"></i> Connecting...</span>
-</div>
-
-<div class="online-count" id="online-count" hidden>
-  <span class="online-count__dot" aria-hidden="true"></span>
-  <span class="online-count__label">Users Online:</span>
-  <span class="online-count__value" id="online-count-value">—</span>
-</div>
-
-<div class="shortcuts"></div>  <div class="news-ticker" id="news-ticker">
-    <div class="news-clock" id="news-clock"></div>
-    <div class="news-date" id="news-date"></div>
-    <div class="news-story" id="news-story">
-      <div class="news-story-title" id="news-story-title"></div>
-      <div class="news-story-desc" id="news-story-desc"></div>
-    </div>
-    <div class="news-dots" id="news-dots"></div>
-  </div>
-
-  <div class="help-wrap" id="help-wrap">
-    <div class="help-legal">
-      <a class="help-legal-link" href="legal.html#terms" target="_blank" rel="noopener noreferrer">TOS</a>
-      <a class="help-legal-link" href="legal.html#privacy" target="_blank" rel="noopener noreferrer">Privacy</a>
-      <span class="help-copy">&copy; Plutonium Network 2026</span>
-    </div>
-    <a class="help-btn help-discord" href="https://discord.gg/sQvNX6SVfA" target="_blank" rel="noopener noreferrer" title="Join our Discord" aria-label="Join our Discord"><i class="fab fa-discord"></i></a>
-    <a class="help-btn help-tiktok" href="https://www.tiktok.com/@plutoniumnetwrk" target="_blank" rel="noopener noreferrer" title="Follow us on TikTok" aria-label="Follow us on TikTok"><i class="fab fa-tiktok"></i></a>
-    <button class="help-btn" id="help-btn" type="button" title="Help" aria-label="Help" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-circle-question"></i></button>
-    <div class="help-menu glass" id="help-menu" hidden>
-      <div class="help-menu-title">Help</div>
-      <button class="help-item" id="help-redo" type="button"><i class="fa-solid fa-rotate-right"></i><span>Redo onboarding</span></button>
-      <button class="help-item" id="help-clear-cache" type="button"><i class="fa-solid fa-trash-can"></i><span>Clear cache &amp; reload</span></button>
-    </div>
-  </div>
-
-    </div>
-    <div id="workspace-root" hidden></div>
-    <div class="page-loading-screen" id="page-loading-screen" style="display:none">
-      <div class="page-loading-title">
-        <span class="page-loading-letter" style="animation-delay:0s">P</span>
-        <span class="page-loading-letter" style="animation-delay:0.18s">l</span>
-        <span class="page-loading-letter" style="animation-delay:0.36s">u</span>
-        <span class="page-loading-letter" style="animation-delay:0.54s">t</span>
-        <span class="page-loading-letter" style="animation-delay:0.72s">o</span>
-        <span class="page-loading-letter" style="animation-delay:0.9s">n</span>
-        <span class="page-loading-letter" style="animation-delay:1.08s">i</span>
-        <span class="page-loading-letter" style="animation-delay:1.26s">u</span>
-        <span class="page-loading-letter" style="animation-delay:1.44s">m</span>
+  <section id="about">
+    <div class="wrap">
+      <div class="section-title">
+        <h2 class="section-heading">Built around curiosity.</h2>
+        <span class="section-note">Learn the idea, not just the answer.</span>
       </div>
-      <div class="page-loading-spinner">
-        <div class="pls-spinner-inner"></div>
-      </div>
-      <div class="page-loading-url" id="page-loading-url"></div>
-    </div>
-    <iframe id="page-frame" class="page-frame" src="about:blank" style="display:none" title="Proxied page" allow="autoplay; fullscreen; encrypted-media; picture-in-picture"></iframe>
-  </div>
 
-</div>
-
-<div class="account-scrim" id="account-scrim" hidden></div>
-<div class="account-dialog glass" id="account-dialog" hidden>
-  <div class="account-dialog__head">
-    <span class="account-dialog__title"><i class="fas fa-user-circle" style="margin-right:6px;opacity:.5"></i>Account</span>
-    <button class="account-dialog__close" id="account-dialog-close"><i class="fas fa-xmark"></i></button>
-  </div>
-  <div class="account-dialog__body">
-    <div class="acct-panel" id="acct-panel">
-      <div class="acct-signed" id="acct-signed" hidden>
-        <div class="acct-profile">
-          <div class="acct-avatar-wrap">
-            <div class="acct-avatar" id="acct-avatar"><i class="fa-solid fa-user"></i></div>
-            <button class="acct-avatar-edit" id="acct-change-photo" type="button" title="Change photo" aria-label="Change photo"><i class="fa-solid fa-camera"></i></button>
-          </div>
-          <input type="file" id="acct-photo-input" accept="image/*" hidden>
-          <div class="acct-profile-meta">
-            <div class="acct-profile-name">
-              <span class="acct-profile-name__text" id="acct-display-name"></span>
-              <button class="acct-edit-btn" id="acct-edit-name" type="button" title="Edit name" aria-label="Edit name"><i class="fa-solid fa-pen"></i></button>
-            </div>
-            <div class="acct-profile-email" id="acct-profile-email"></div>
-          </div>
-        </div>
-        <button class="acct-signout" id="acct-signout" type="button"><i class="fa-solid fa-arrow-right-from-bracket"></i>Sign out</button>
-        <div class="acct-section">
-          <div class="acct-section-label">Sign-in methods</div>
-          <div class="acct-providers" id="acct-providers"></div>
-        </div>
-        <div class="acct-section" id="acct-password-section" hidden>
-          <div class="acct-section-label">Change password</div>
-          <input class="acct-field__input" id="acct-new-pass" type="password" placeholder="New password" autocomplete="new-password">
-          <div class="acct-auth-error" id="acct-pass-error"></div>
-          <button class="acct-secondary-btn" id="acct-pass-save" type="button">Update password</button>
-        </div>
-        <div class="acct-section">
-          <div class="acct-section-label">Data</div>
-          <button class="acct-secondary-btn" id="acct-export" type="button"><i class="fa-solid fa-download"></i>Export my data</button>
-        </div>
-        <div class="acct-section">
-          <div class="acct-section-label">AI usage</div>
-          <div class="acct-quota" id="acct-quota"></div>
-        </div>
-        <button class="acct-delete" id="acct-delete" type="button"><i class="fa-solid fa-trash-can"></i><span class="acct-delete__label">Delete account</span></button>
-      </div>
-      <div class="acct-signin-fields" id="acct-signin-fields" hidden>
-        <div class="acct-oauth">
-          <button class="acct-oauth__btn acct-oauth__google" id="acct-google-btn"><img src="img/3rd-party/google.png" alt="Continue with Google"></button>
-          <button class="acct-oauth__btn acct-oauth__github" id="acct-github-btn"><img src="img/3rd-party/github.png" alt="Continue with GitHub"></button>
-        </div>
-        <div class="acct-auth-or">or sign in with email</div>
-        <label class="acct-field">
-          <input class="acct-field__input" id="acct-email-input" type="email" name="email" placeholder=" " autocomplete="email">
-          <span class="acct-field__label">Email</span>
-          <span class="acct-field__line"></span>
-        </label>
-        <label class="acct-field">
-          <input class="acct-field__input" id="acct-password-input" type="password" name="password" placeholder=" " autocomplete="current-password">
-          <span class="acct-field__label">Password</span>
-          <span class="acct-field__line"></span>
-        </label>
-        <label class="acct-field acct-field--name">
-          <input class="acct-field__input" id="acct-name-input" type="text" placeholder=" " autocomplete="name">
-          <span class="acct-field__label">Your name</span>
-          <span class="acct-field__line"></span>
-        </label>
-        <div class="acct-auth-error" id="acct-error"></div>
-        <button class="acct-auth-submit" id="acct-auth-submit" type="button">Sign In</button>
-        <div class="acct-auth-toggle" id="acct-toggle">No Account? Make a free one!</div>
-        <button class="acct-forgot" id="acct-forgot" type="button">Forgot password?</button>
+      <div class="facts">
+        <div class="fact"><strong>4</strong><span>core science areas</span></div>
+        <div class="fact"><strong>01</strong><span>question at the start of every lesson</span></div>
+        <div class="fact"><strong>∞</strong><span>things left to discover</span></div>
       </div>
     </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap footer">
+    <span>Plutonium Education</span>
+    <span>Science is worth being curious about.</span>
   </div>
-</div>
-<div class="about-scrim" id="about-scrim" hidden></div>
-<div class="about-dialog glass" id="about-dialog" hidden></div>
-
-<div class="history-scrim" id="history-scrim" hidden></div>
-<div class="history-dialog glass" id="history-dialog" hidden>
-  <div class="history-dialog__head">
-    <span class="history-dialog__title"><i class="fas fa-clock-rotate-left"></i>History</span>
-    <div class="history-dialog__head-actions">
-      <button class="history-dialog__clear" id="history-dialog-clear" type="button"><i class="fas fa-trash-can"></i>Clear all</button>
-      <button class="history-dialog__close" id="history-dialog-close" type="button" aria-label="Close history"><i class="fas fa-xmark"></i></button>
-    </div>
-  </div>
-  <div class="history-dialog__tools">
-    <div class="history-search">
-      <i class="fas fa-magnifying-glass"></i>
-      <input type="text" id="history-search-input" placeholder="Search history" autocomplete="off" spellcheck="false">
-      <button class="history-search__clear" id="history-search-clear" type="button" aria-label="Clear search" hidden><i class="fas fa-xmark"></i></button>
-    </div>
-    <div class="history-tags" id="history-tags" aria-label="Filter history by type"></div>
-  </div>
-  <div class="history-dialog__body" id="history-list"></div>
-</div>
-
-
-<div class="relay-switcher-scrim" id="relay-switcher-scrim" aria-hidden="true"></div>
-<div class="relay-switcher-menu glass" id="relay-switcher-menu" hidden>
-  <div class="relay-switcher-menu-list" id="relay-switcher-menu-list"></div>
-</div>
-
-<div class="waffle-menu glass" id="waffle-menu" hidden>
-  <div class="waffle-menu-title">Apps</div>
-  <button class="waffle-item" data-local-uri="pluto://games"><i class="fa-solid fa-gamepad"></i><span>Games</span></button>
-  <button class="waffle-item" data-local-uri="pluto://media"><i class="fa-solid fa-film"></i><span>Media</span></button>
-  <button class="waffle-item" data-local-uri="pluto://ai"><i class="fa-solid fa-robot"></i><span>AI</span></button>
-  <button class="waffle-item" data-local-uri="pluto://vms"><i class="fa-solid fa-server"></i><span>VMs</span></button>
-  <button class="waffle-item" data-local-uri="pluto://cloud"><i class="fa-solid fa-cloud"></i><span>Cloud Gaming</span></button>
-</div>
-
-<div class="customize-scrim" id="customize-scrim"></div>
-<div class="customize-menu glass" id="customize-menu" hidden>
-  <div class="customize-menu-title">Customize</div>
-  <div class="customize-menu-scroll">
-    <div class="customize-section-label">Background</div>
-    <div class="customize-effect-grid" id="customize-effects"></div>
-    <div class="customize-section-label">Wallpapers</div>
-    <div class="customize-wallpaper-grid" id="customize-wallpapers"></div>
-    <div class="customize-section-label">Accent Color</div>
-    <div class="customize-swatches" id="customize-accent"></div>
-    <div class="customize-section-label">Sound</div>
-    <div class="customize-sound" id="customize-sound"></div>
-  </div>
-</div>
-
-<script src="js/cloud-store.js?v=2"></script>
-<script src="js/cloud-store-config.js"></script>
-<script src="js/account.js?v=41"></script>
-<script src="js/history.js?v=4"></script>
-<script src="https://unpkg.com/draggabilly@2.2.0/dist/draggabilly.pkgd.min.js"></script>
-<script src="/bridge/index.js"></script>
-<script src="/core/bundle.js"></script>
-<script src="/core/config.js"></script>
-<script src="/runtime/all.js"></script>
-<script src="js/chrome-tabs.js"></script>
-<script src="js/bookmarks.js"></script>
-<script src="js/bookmarks-bar.js"></script>
-<script src="js/net.js?v=9"></script>
-<script src="js/url.js"></script>
-<script src="js/vms-mark.js"></script>
-<script src="js/workspaces.js?v=10"></script>
-<script src="js/navigation.js?v=6"></script>
-<script src="js/keyboard.js"></script>
-<script src="js/pins.js?v=1"></script>
-<script src="js/theme-state.js"></script>
-<script src="js/sound.js"></script>
-<script src="js/page-theme.js"></script>
-<script src="js/theme.js"></script>
-<script src="js/logo.js"></script>
-<script src="js/newtab-search.js?v=1"></script>
-<script src="js/online-count.js?v=1"></script>
-<script src="js/main.js?v=11"></script>
-<script src="js/tabs.js"></script>
-<script src="js/context-menu.js?v=3"></script>
-<script src="js/loading.js?v=2"></script>
-<script src="js/onboarding-redirect.js"></script>
-<script src="js/escape.js"></script>
-<script src="js/announcement-banner.js"></script>
-<script src="js/presence-ui.js"></script>
-<script src="js/client-presence.js"></script>
-<script src="js/news-ticker.js"></script>
-<div id="net-info-overlay" hidden>
-  <div class="net-info-box conn-hud-box">
-    <div class="net-info-box-title">Connection</div>
-    <div id="conn-hud-current"></div>
-    <div id="conn-hud-regions"></div>
-    <div class="net-info-box-actions">
-      <button class="net-info-close-btn" id="net-info-close" type="button">Done</button>
-    </div>
-  </div>
-</div>
+</footer>
 </body>
 </html>
