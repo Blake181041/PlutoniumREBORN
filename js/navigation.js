@@ -81,6 +81,15 @@ function hideLoadingScreen() {
   if (pageLoadingScreen) pageLoadingScreen.style.display = 'none'
 }
 
+function loadNetworkFrame(url) {
+  if (typeof getNetEngine === 'function' && getNetEngine() === 'runtime'
+      && typeof window.loadRuntimeUrl === 'function' && window.loadRuntimeUrl(url)) {
+    return true
+  }
+  loadNetworkFrame(url)
+  return !!pageFrame
+}
+
 function unloadPageFrame() {
   try {
     if (pageFrame && pageFrame.contentWindow && typeof pageFrame.contentWindow.stop === 'function') pageFrame.contentWindow.stop()
@@ -184,7 +193,7 @@ async function openHistoryEntry(tabEl, index) {
 
   newTabPage.style.display = 'none'
   showLoadingScreen(url)
-  if (pageFrame) pageFrame.src = getNetUrl(url)
+  loadNetworkFrame(url)
   urlInput.value = url
   setAddressIndicator(url)
   syncNavButtons(tabEl)
@@ -341,6 +350,7 @@ btnRefresh.addEventListener('click', async () => {
     if (local) { window.location.reload(); return }
   }
   if (!pageFrame || pageFrame.style.display === 'none') return
+  if (getNetEngine && getNetEngine() === 'runtime' && typeof window.reloadRuntimePage === 'function' && window.reloadRuntimePage()) return
   try { pageFrame.contentWindow.location.reload() } catch (e) { pageFrame.src = pageFrame.src }
 })
 
