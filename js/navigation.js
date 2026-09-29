@@ -86,7 +86,7 @@ function loadNetworkFrame(url) {
       && typeof window.loadRuntimeUrl === 'function' && window.loadRuntimeUrl(url)) {
     return true
   }
-  loadNetworkFrame(url)
+  if (pageFrame) pageFrame.src = getNetUrl(url)
   return !!pageFrame
 }
 
