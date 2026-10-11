@@ -197,8 +197,12 @@
   var bannerTitle = null;
   var bannerPct = null;
   var bannerStatus = null;
-  var bannerSegments = [];   // { track, fill }
+  var bannerSegments = [];   // { track, fill } — one per cache group
+  var bannerBar = null;
+  var bannerMonthBar = null;
+  var bannerMonthSegments = [];   // { track, fill } — one per month of the defaults stage
   var STEPS = { backgrounds: 0, logos: 1, games: 2, cloud: 3, defaults: 4 };
+  var MONTH_COUNT = 12;
 
   // Appearance lives in css/glass.css (`.plu-cache-banner`), which takes every
   // colour from the theme tokens (--ui-accent, --ui-accent-rgb, --ui-text...).
@@ -227,8 +231,8 @@
     head.appendChild(bannerTitle);
     head.appendChild(bannerPct);
 
-    var bar = document.createElement('div');
-    bar.className = 'plu-cache-banner__bar';
+    bannerBar = document.createElement('div');
+    bannerBar.className = 'plu-cache-banner__bar';
 
     for (var i = 0; i < GROUP_COUNT; i++) {
       var track = document.createElement('span');
@@ -236,15 +240,31 @@
       var fill = document.createElement('span');
       fill.className = 'plu-cache-banner__fill';
       track.appendChild(fill);
-      bar.appendChild(track);
+      bannerBar.appendChild(track);
       bannerSegments.push({ track: track, fill: fill });
+    }
+
+    // The default-background stage covers a whole year, so once it starts the row
+    // is swapped for one segment per month, filled January through December.
+    bannerMonthBar = document.createElement('div');
+    bannerMonthBar.className = 'plu-cache-banner__bar plu-cache-banner__bar--months';
+    bannerMonthBar.setAttribute('hidden', '');
+    for (var m = 0; m < MONTH_COUNT; m++) {
+      var mTrack = document.createElement('span');
+      mTrack.className = 'plu-cache-banner__track';
+      var mFill = document.createElement('span');
+      mFill.className = 'plu-cache-banner__fill';
+      mTrack.appendChild(mFill);
+      bannerMonthBar.appendChild(mTrack);
+      bannerMonthSegments.push({ track: mTrack, fill: mFill });
     }
 
     bannerStatus = document.createElement('div');
     bannerStatus.className = 'plu-cache-banner__status';
 
     banner.appendChild(head);
-    banner.appendChild(bar);
+    banner.appendChild(bannerBar);
+    banner.appendChild(bannerMonthBar);
     banner.appendChild(bannerStatus);
 
     var host = inlineMode ? inlineMount : document.body;
@@ -573,87 +593,157 @@
    * cannot drift from what the app actually renders. Every dated entry has a
    * file on disk; the top-level `default.image` is deliberately skipped because
    * it does not exist in this checkout and would fail on every run. */
-  async function defaultBackgroundUrls() {
+  function sortNumericKeys(keys) {
+    return keys.slice().sort(function (a, b) {
+      return (parseInt(a, 10) || 0) - (parseInt(b, 10) || 0);
+    });
+  }
+
+  async function defaultBackgroundsByMonth() {
     var resp = await fetch(BG_DEFAULT_DATA_URL, { cache: 'no-store' });
     if (!resp.ok) return [];
     var cfg = await resp.json();
     var months = (cfg && cfg.months) || {};
-    var urls = [];
-    var seen = new Set();
-    Object.keys(months).forEach(function (key) {
+
+    return sortNumericKeys(Object.keys(months)).map(function (key) {
       var month = months[key] || {};
+      var urls = [];
+      var seen = new Set();
       ['weeks', 'days'].forEach(function (bucket) {
         var group = month[bucket] || {};
-        Object.keys(group).forEach(function (slot) {
+        sortNumericKeys(Object.keys(group)).forEach(function (slot) {
           var file = group[slot] && group[slot].image;
           if (typeof file !== 'string' || !file || seen.has(file)) return;
           seen.add(file);
           urls.push(file);
         });
       });
+      return { key: key, label: month.name || ('Month ' + key), urls: urls };
+    }).filter(function (month) { return month.urls.length; });
+  }
+
+  /* Swap the group row for the month row: the defaults stage is a year of
+   * backgrounds, so it reports itself as twelve monthly steps instead of one. */
+  function enterMonthMode() {
+    if (bannerBar) bannerBar.setAttribute('hidden', '');
+    if (bannerMonthBar) bannerMonthBar.removeAttribute('hidden');
+  }
+
+  function setMonthProgress(index, pct) {
+    bannerMonthSegments.forEach(function (seg, i) {
+      if (i < index) {
+        seg.fill.style.width = '100%';
+        seg.track.classList.remove('is-active');
+      } else if (i === index) {
+        seg.fill.style.width = pct + '%';
+        seg.track.classList.add('is-active');
+      } else {
+        seg.fill.style.width = '0%';
+        seg.track.classList.remove('is-active');
+      }
     });
-    return urls;
+  }
+
+  // A month that needs nothing still moves the stage along. It leaves the status
+  // line alone on purpose: flashing "0/0 items" would read as a broken transfer.
+  function skipMonth(monthIndex) {
+    bannerMonthSegments.forEach(function (seg, i) {
+      seg.fill.style.width = i <= monthIndex ? '100%' : '0%';
+      seg.track.classList.remove('is-active');
+    });
+    activeGroupIndex = STEPS.defaults;
+    activeGroupPct = ((monthIndex + 1) / MONTH_COUNT) * 100;
+    updateOverall();
+  }
+
+  // Overall progress treats the twelve months as the one group they belong to.
+  function updateMonthProgress(label, monthIndex, monthPct, cached, total, bytesDone, bytesTotal) {
+    setMonthProgress(monthIndex, monthPct);
+    var groupPct = ((monthIndex + (monthPct / 100)) / MONTH_COUNT) * 100;
+    activeGroupIndex = STEPS.defaults;
+    activeGroupPct = groupPct;
+    if (bannerSegments[STEPS.defaults]) bannerSegments[STEPS.defaults].fill.style.width = groupPct + '%';
+    setSegmentActive(STEPS.defaults);
+    updateOverall();
+    if (bannerStatus) {
+      bannerStatus.textContent =
+        'Caching default backgrounds (' + label + '): ' + cached + '/' + total + ' items  ' +
+        formatMB(bytesDone) + ' / ' + formatMB(bytesTotal);
+    }
   }
 
   async function cacheDefaultBackgrounds() {
     if (!('caches' in window)) return;
     try {
-      var urls = await defaultBackgroundUrls();
-      if (!urls.length) return;
+      var months = await defaultBackgroundsByMonth();
+      if (!months.length) return;
 
       var dayCache = await caches.open(BG_DEFAULT_CACHE_KEY);
       var dayKeys = await dayCache.keys();
       var alreadyCached = new Set(dayKeys.map(function (r) { return r.url; }));
-      var missing = urls.map(function (url) { return new URL(url, location.href).href; })
-        .filter(function (url) { return !alreadyCached.has(url); });
-      if (!missing.length) { markStepComplete('Caching default backgrounds:'); return; }
+      var planned = months.map(function (month) {
+        return {
+          label: month.label,
+          urls: month.urls.map(function (url) { return new URL(url, location.href).href; })
+            .filter(function (url) { return !alreadyCached.has(url); })
+        };
+      });
+      var anyMissing = planned.some(function (month) { return month.urls.length; });
+      if (!anyMissing) { markStepComplete('Caching default backgrounds:'); return; }
 
       progressStarted = true;
       revealWhenAllowed();
-      updateProgress(0, missing.length, 0, 0, 'Caching default backgrounds:');
+      enterMonthMode();
 
-      var lengths = await contentLengths(missing);
-      var bytesDone = 0;
-      var bytesTotal = sumBytes(lengths);
-      updateProgress(0, missing.length, 0, bytesTotal, 'Caching default backgrounds:');
-
-      // Hundreds of files, so this group pulls a few at a time instead of strictly
-      // one by one. The counter only ever climbs, so the bar stays monotonic.
-      var next = 0;
-      var done = 0;
+      // Out of storage: later months cannot help either, so the whole stage stops.
       var stopped = false;
 
-      async function worker() {
-        while (next < missing.length && !stopped) {
-          var index = next++;
-          var url = missing[index];
-          try {
-            var resp = await fetch(url, { cache: 'no-store' });
-            var len = parseInt(resp.headers.get('content-length') || '0', 10) || lengths[index] || 0;
-            if (resp.ok) {
-              await dayCache.put(url, resp.clone());
-              // Declared length rather than the body's size: with six of these
-              // large files in flight, reading the body back reports a short
-              // count, which would understate the MB figure by half.
-              bytesDone += len || await responseBytes(resp, len);
-            } else {
-              failedAssets++;
-            }
-          } catch (err) {
-            failedAssets++;
-            // Out of storage: retrying the other few hundred files cannot help, and
-            // hammering them would only thrash the quota.
-            if (err && (err.name === 'QuotaExceededError' || err.code === 22)) stopped = true;
-          }
-          done++;
-          updateProgress(done, missing.length, bytesDone, bytesTotal, 'Caching default backgrounds:');
-        }
-      }
+      for (var mi = 0; mi < planned.length && !stopped; mi++) {
+        var month = planned[mi];
+        if (!month.urls.length) { skipMonth(mi); continue; }
 
-      var workers = [];
-      var workerCount = Math.min(6, missing.length);
-      for (var w = 0; w < workerCount; w++) workers.push(worker());
-      await Promise.all(workers);
+        var lengths = await contentLengths(month.urls);
+        var bytesDone = 0;
+        var bytesTotal = sumBytes(lengths);
+        var done = 0;
+        updateMonthProgress(month.label, mi, 0, 0, month.urls.length, 0, bytesTotal);
+
+        // Hundreds of files across the stage, so a month pulls a few at a time
+        // instead of strictly one by one. The counter only ever climbs.
+        var next = 0;
+        async function worker() {
+          while (next < month.urls.length && !stopped) {
+            var index = next++;
+            var url = month.urls[index];
+            try {
+              var resp = await fetch(url, { cache: 'no-store' });
+              var len = parseInt(resp.headers.get('content-length') || '0', 10) || lengths[index] || 0;
+              if (resp.ok) {
+                await dayCache.put(url, resp.clone());
+                // Declared length rather than the body's size: with six of these
+                // large files in flight, reading the body back reports a short
+                // count, which would understate the MB figure by half.
+                bytesDone += len || await responseBytes(resp, len);
+              } else {
+                failedAssets++;
+              }
+            } catch (err) {
+              failedAssets++;
+              // Retrying the rest of the year cannot help, and hammering it would
+              // only thrash the quota.
+              if (err && (err.name === 'QuotaExceededError' || err.code === 22)) stopped = true;
+            }
+            done++;
+            var pct = month.urls.length ? Math.round((done / month.urls.length) * 100) : 100;
+            updateMonthProgress(month.label, mi, pct, done, month.urls.length, bytesDone, bytesTotal);
+          }
+        }
+
+        var workers = [];
+        var workerCount = Math.min(6, month.urls.length);
+        for (var w = 0; w < workerCount; w++) workers.push(worker());
+        await Promise.all(workers);
+      }
     } catch (_) {}
   }
 

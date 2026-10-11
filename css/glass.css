@@ -255,6 +255,12 @@ html[data-theme='light'] #plu-cache-banner:not(.plu-cache-banner--inline) .plu-c
   gap: 4px;
   margin-top: 8px;
 }
+/* Twelve month ticks for the default-background stage. They are narrower than the
+   group segments, so they get a tighter gap and sit a touch lower. The [hidden]
+   rule has to be explicit: the class above would otherwise out-rank the UA one. */
+.plu-cache-banner__bar[hidden] { display: none; }
+.plu-cache-banner__bar--months { gap: 3px; }
+.plu-cache-banner__bar--months .plu-cache-banner__track { height: 4px; }
 .plu-cache-banner__track {
   flex: 1;
   height: 5px;
