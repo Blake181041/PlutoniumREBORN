@@ -1055,18 +1055,24 @@ html,body{height:100%;background:transparent;font-family:-apple-system,BlinkMacS
   padding:0 5px;font-size:9px;font-weight:600;letter-spacing:.3px;line-height:1.6;
   opacity:.85;
 }
+/* A retired engine keeps its badge legible while the button itself sits muted:
+   amber and full opacity, so "deprecated" is not lost in the dim row. */
+.engine-badge--deprecated{
+  color:var(--ui-warn);border-color:rgba(var(--ui-warn-rgb),0.6);opacity:1;
+}
 .engine-btn:hover{color:var(--ui-text)}
 .engine-btn.active{color:var(--ui-text)}
-/* The pill shows the primary engines up front; the extra set (Hyperbeam,
-   Compaxy, VanilliaPXY) lives in this wrapper and slides open in place, so the
-   whole control stays one connected pill instead of a detached panel. */
+/* The pill shows the primary engines up front (UV and Rammerhead); the extra
+   set — Hyperbeam, Compaxy, VanilliaPXY and the deprecated Scramjet V1 — lives in
+   this wrapper and slides open in place, so the whole control stays one
+   connected pill instead of a detached panel. */
 .engine-more{
   display:flex;align-items:center;
   min-width:0;max-width:0;overflow:hidden;opacity:0;
   transition:max-width .65s cubic-bezier(0.22,1,0.36,1),opacity .45s ease;
 }
 .engine-more .engine-btn{flex:0 0 auto}
-.engine-switch.engines-open .engine-more{max-width:520px;opacity:1}
+.engine-switch.engines-open .engine-more{max-width:680px;opacity:1}
 /* Reveal toggle at the right end of the pill, past a hairline divider. */
 .engine-expand{
   display:inline-flex;align-items:center;justify-content:center;
