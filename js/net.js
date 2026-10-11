@@ -150,7 +150,7 @@ function getCurrentRelayServer() {
   return getRelayServerById(currentRelayServerId) || getConfiguredRelayServers()[0] || null
 }
 
-// The row under the engine switch picks the wisp relay for the UV/Scramjet
+// The row under the engine switch picks the wisp relay for the UV/Scramjet V1
 // engines and the VanilliaPXY host for the vanillia engine. Everything the
 // picker draws goes through these, so the two choices stay independent: the
 // wisp helpers above always mean the wisp relay.
@@ -960,7 +960,7 @@ function refreshPickerForEngine() {
   renderRelaySwitcherMenu()
   refreshConnectionHud()
 
-  // Switching UV <-> SJ keeps the same relay, so don't churn its socket.
+  // Switching UV <-> Scramjet V1 keeps the same relay, so don't churn its socket.
   if (source === lastPickerSource) return
   lastPickerSource = source
   setRelayStatus('connecting', { server: getPickerServer() })
@@ -1048,9 +1048,9 @@ function syncEngineButtons() {
   positionSlider(slider, switchEl, activeBtn)
 }
 
-// Hyperbeam, Compaxy and VanilliaPXY live in the pill's reveal group. Asking
-// the DOM which group an engine sits in avoids a second hardcoded list that
-// could drift from the markup.
+// Hyperbeam, Compaxy, VanilliaPXY and the deprecated Scramjet V1 live in the
+// pill's reveal group. Asking the DOM which group an engine sits in avoids a
+// second hardcoded list that could drift from the markup.
 function isMoreEngine(engine) {
   const btn = document.querySelector(`.engine-btn[data-engine="${engine}"]`)
   return !!(btn && btn.closest('.engine-more'))
@@ -1348,7 +1348,7 @@ function openNetInfoPopup() {
 }
 
 function currentEngineLabel() {
-  return selectedNet === 'runtime' ? 'SJ'
+  return selectedNet === 'runtime' ? 'Scramjet V1'
     : selectedNet === 'remote' ? 'Hyperbeam'
     : selectedNet === 'vanillia' ? 'VanilliaPXY'
     : selectedNet === 'compaxy' ? 'Compaxy'
@@ -1448,8 +1448,8 @@ async function runNetInit() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // A saved secondary engine (Hyperbeam/Compaxy/VanilliaPXY) opens the reveal
-  // group on load, so the active engine is always visible.
+  // A saved secondary engine (Hyperbeam/Compaxy/VanilliaPXY/Scramjet V1) opens
+  // the reveal group on load, so the active engine is always visible.
   setEnginesOpen(isMoreEngine(selectedNet))
   initRelayUi()
   runNetInit()
