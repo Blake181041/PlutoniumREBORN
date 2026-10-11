@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="stylesheet" href="css/plu-tokens.css">
 <link rel="stylesheet" href="css/onboarding.css?v=3">
-<link rel="stylesheet" href="css/glass.css">
+<link rel="stylesheet" href="css/glass.css?v=8">
 </head>
 <body class="onboarding-body">
 <!-- Mobile is supported: the layout it gets is chosen by js/mobile-mode.js. -->
@@ -140,6 +140,7 @@
   </div>
 
   <footer class="onb-footer">
+    <div class="onb-cache-banner" id="onb-cache-banner" hidden></div>
     <div class="onb-progress" id="onb-progress" aria-hidden="true"></div>
     <button class="glass onb-btn onb-skip-top" id="onb-skip" type="button">Skip</button>
     <div class="onb-footer-row">
@@ -164,6 +165,7 @@
 <script src="js/announcement-banner.js"></script>
 <script src="js/presence-ui.js"></script>
 <script src="js/client-presence.js"></script>
+<script src="js/loading.js?v=8"></script>
 <script src="js/onboarding.js?v=5"></script>
 </body>
 </html>
