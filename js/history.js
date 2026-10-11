@@ -34,6 +34,7 @@
   const ENGINE_LABELS = {
     core:      'UV',
     runtime:   'Scramjet V1',
+    runtimev2: 'Scramjet V2',
     remote:    'Hyperbeam',
     vanillia:  'VanilliaPXY',
     compaxy:   'Compaxy',

@@ -178,7 +178,7 @@ async function openHistoryEntry(tabEl, index) {
     await activateRemoteTab(url, tabEl)
     return
   }
-  if (!coreReady || !bridgeReady) await initNetStack()
+  if (!isNetStackReady()) await initNetStack()
   if (window.Workspaces) Workspaces.deactivate()
   if (pageFrame) pageFrame.style.display = 'none'
 
@@ -214,7 +214,7 @@ function recordProxyVisit(kind, title, href, engine) {
 }
 
 async function navigate(url) {
-  if (!coreReady || !bridgeReady) await initNetStack()
+  if (!isNetStackReady()) await initNetStack()
   let full = (url || '').trim()
   if (!full) return
   if (window.SoundFX) window.SoundFX.play('launch')

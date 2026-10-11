@@ -54,6 +54,7 @@
         personalGames: { enabled: true, notice: '' },
         proxyUV:       { enabled: true, notice: '' },
         proxyScramjet: { enabled: true, notice: '' },
+        proxyScramjetV2: { enabled: true, notice: '' },
         proxyRammerhead: { enabled: true, notice: '' },
         accounts:      { enabled: true, notice: '' },
       },

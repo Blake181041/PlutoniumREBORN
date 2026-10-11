@@ -188,6 +188,10 @@ function getDefaultRammerheadServer() { return getPreferredPickerServer(RAMMERHE
 function isVanilliaEngine() { return selectedNet === 'vanillia' }
 function isCompaxyEngine() { return selectedNet === 'compaxy' }
 function isRammerheadEngine() { return selectedNet === 'rammerhead' }
+// Scramjet V2 keeps the wisp relay but not the BareMux bridge: its own
+// controller reaches the relay through libcurl, so the transport is built in
+// js/runtimev2.js instead of by initBridge().
+function isRuntimeV2Engine() { return selectedNet === 'runtimev2' }
 // VanilliaPXY, Compaxy and Rammerhead serve a proxy page from their own hosts,
 // so none needs a local service worker, wisp relay or BareMux bridge: only the
 // frame URL changes between them and the wisp engines.
@@ -895,6 +899,29 @@ async function switchRelayServer(serverId) {
 
   hideRelaySwitcherMenu()
 
+  // runtimev2 picks a wisp relay like the v1 engines, but swaps the transport
+  // on the live controller instead of tearing down a bridge it never built.
+  if (isRuntimeV2Engine()) {
+    setPickerServerId(targetServer.id)
+    currentRelayLatencyMs = relayPingByServerId.get(pickerPingKey(targetServer.id))?.latency ?? null
+    updateRelaySwitcherButton()
+    renderRelaySwitcherMenu()
+    refreshConnectionHud()
+    if (sameServer) return true
+
+    const probed = await measurePickerServer(targetServer)
+    relayPingByServerId.set(pickerPingKey(targetServer.id), { ok: probed.ok, latency: probed.latency })
+    currentRelayLatencyMs = probed.latency
+    setRelayStatus(probed.ok ? 'ok' : 'err', { server: targetServer, latency: probed.latency })
+
+    if (window.PluRuntimeV2) {
+      const relayUrl = await getRelayUrl(targetServer.id)
+      window.PluRuntimeV2.setRelay(relayUrl)
+    }
+    if (pageUrl) reconnectActivePage(pageUrl)
+    return probed.ok
+  }
+
   // A VanilliaPXY, Compaxy or Rammerhead server is picked, not connected: the
   // frame just points at the other host, so there is no socket, bridge or
   // transport to tear down.
@@ -1007,7 +1034,7 @@ let currentRemoteTargetUrl = null
 function getNetEngine() { return selectedNet }
 
 function setNetEngine(engine) {
-  if (!['core', 'runtime', 'remote', 'vanillia', 'compaxy', 'rammerhead'].includes(engine)) return
+  if (!['core', 'runtime', 'runtimev2', 'remote', 'vanillia', 'compaxy', 'rammerhead'].includes(engine)) return
   const previous = selectedNet
   selectedNet = engine
   localStorage.setItem(NET_MODE_KEY, engine)
@@ -1096,6 +1123,7 @@ if (typeof window !== 'undefined' && window.addEventListener) {
 
 window.getNetEngine = getNetEngine
 window.setNetEngine = setNetEngine
+window.isNetStackReady = isNetStackReady
 window.toggleEnginesOpen = toggleEnginesOpen
 
 async function initCore() {
@@ -1182,7 +1210,46 @@ async function initBridge() {
   return pendingInitPromise
 }
 
+// runtimev2 has no bridge to wait on: readiness is its controller answering,
+// which is what navigation waits for before asking for a rewritten URL.
+let runtimeV2Ready = false
+let runtimeV2Promise = null
+
+async function ensureRuntimeV2() {
+  if (runtimeV2Ready) return true
+  if (runtimeV2Promise) return runtimeV2Promise
+
+  runtimeV2Promise = (async () => {
+    try {
+      if (!window.PluRuntimeV2) throw new Error('js/runtimev2.js not loaded')
+      // The same relay the wisp engines use; v2 just speaks to it through
+      // libcurl rather than through BareMux.
+      const relayUrl = await getRelayUrl()
+      runtimeV2Ready = await window.PluRuntimeV2.ensure(relayUrl)
+      return runtimeV2Ready
+    } catch (e) {
+      console.warn('[runtimev2] engine init failed:', e)
+      runtimeV2Ready = false
+      return false
+    } finally {
+      runtimeV2Promise = null
+    }
+  })()
+
+  return runtimeV2Promise
+}
+
+// One readiness question for the callers in navigation.js: v1 needs its service
+// worker and the BareMux bridge, v2 only needs its own controller.
+function isNetStackReady() {
+  if (isRuntimeV2Engine()) return runtimeV2Ready
+  return coreReady && bridgeReady
+}
+
 async function initNetStack() {
+  // Scramjet V2 brings its own worker and transport and shares nothing with the
+  // v1 stack, so it must not drag UV and Scramjet V1 registration along.
+  if (isRuntimeV2Engine()) return ensureRuntimeV2()
   await initCore()
   await initRuntime()
   // VanilliaPXY, Compaxy and Rammerhead are hosts of their own: they need no
@@ -1257,6 +1324,9 @@ window.endRemoteSession = endRemoteSession
 
 function getNetUrl(url) {
   if (selectedNet === 'remote') return url
+  if (selectedNet === 'runtimev2') {
+    return window.PluRuntimeV2 ? window.PluRuntimeV2.encodeUrl(url) : url
+  }
   if (selectedNet === 'vanillia') return getVanilliaRouteUrl() + encodeURIComponent(url)
   if (selectedNet === 'compaxy') return getCompaxyRouteUrl() + encodeURIComponent(url)
   if (selectedNet === 'rammerhead') return getRammerheadRouteUrl() + encodeURIComponent(url)
@@ -1270,6 +1340,12 @@ function getNetUrl(url) {
 
 function getRealUrlFromNet(maybeNetUrl) {
   if (currentRemoteTargetUrl) return currentRemoteTargetUrl
+
+  if (selectedNet === 'runtimev2') {
+    // v2 frames are the only ones whose prefix belongs to one frame object, so
+    // the decode goes through the same context that produced the URL.
+    return window.PluRuntimeV2 ? window.PluRuntimeV2.decodeUrl(maybeNetUrl) : maybeNetUrl
+  }
 
   if (selectedNet === 'vanillia') {
     // Any vanillia host decodes, not just the selected one: a frame loaded before
@@ -1348,7 +1424,8 @@ function openNetInfoPopup() {
 }
 
 function currentEngineLabel() {
-  return selectedNet === 'runtime' ? 'Scramjet V1'
+  return selectedNet === 'runtimev2' ? 'Scramjet V2'
+    : selectedNet === 'runtime' ? 'Scramjet V1'
     : selectedNet === 'remote' ? 'Hyperbeam'
     : selectedNet === 'vanillia' ? 'VanilliaPXY'
     : selectedNet === 'compaxy' ? 'Compaxy'
@@ -1433,9 +1510,9 @@ async function runNetInit() {
   try {
     await chooseBestPickerServer()
     lastPickerSource = isVanilliaEngine() ? 'vanillia' : isCompaxyEngine() ? 'compaxy' : isRammerheadEngine() ? 'rammerhead' : 'wisp'
-    if (isHostProxyEngine()) {
-      // Nothing to preload: a vanillia or compaxy host is probed over HTTP
-      // instead.
+    if (isHostProxyEngine() || isRuntimeV2Engine()) {
+      // Nothing to preload: a vanillia or compaxy host is probed over HTTP, and
+      // v2's libcurl opens its own relay connection instead of a BareMux socket.
       updateRelaySwitcherButton()
       renderRelaySwitcherMenu()
       probeCurrentPickerServer()

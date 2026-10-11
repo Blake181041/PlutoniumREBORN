@@ -1101,6 +1101,14 @@ html,body{height:100%;background:transparent;font-family:-apple-system,BlinkMacS
 .engine-switch.dragging{transition:none}
 .engine-switch.springing{transition:none}
 .engine-switch.springing .engine-slider{transition:none}
+/* The revealed set is wider than a narrow window. Without this the right-hand
+   buttons would be clipped with no way to reach them, so the control scrolls
+   sideways instead — every engine stays selectable at any width. */
+@media (max-width:900px){
+  .new-tab-page .engine-switch{max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .new-tab-page .engine-switch::-webkit-scrollbar{display:none}
+}
+
 /* Six engines no longer fit a phone-width pill, so down here the buttons keep
    their logo and drop the text; the title/aria-label still carries the name. */
 @media (max-width:560px){
