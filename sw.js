@@ -1,4 +1,4 @@
-const BUILD_VERSION = 8;
+const BUILD_VERSION = 9;
 
 if (navigator.userAgent.includes("Firefox")) {
 	Object.defineProperty(globalThis, "crossOriginIsolated", {

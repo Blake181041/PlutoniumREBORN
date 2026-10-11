@@ -359,6 +359,24 @@ Array.from(document.querySelectorAll('.engine-btn')).forEach(btn => {
   })
 });
 
+(function initEngineExpand() {
+  const toggle = document.getElementById('engine-expand')
+  if (toggle) {
+    toggle.addEventListener('click', (e) => {
+      e.preventDefault()
+      if (typeof toggleEnginesOpen === 'function') toggleEnginesOpen()
+    })
+  }
+  const more = document.getElementById('engine-more')
+  if (more) {
+    // The slider is placed in pixels, so it has to be re-measured once the
+    // reveal transition finishes and the buttons reach their final widths.
+    more.addEventListener('transitionend', (e) => {
+      if (e.propertyName === 'max-width' && typeof syncEngineButtons === 'function') syncEngineButtons()
+    })
+  }
+})();
+
 (function initEngineSliderDrag() {
   const switchEl = document.querySelector('.engine-switch')
   const slider = document.getElementById('engine-slider')
@@ -381,7 +399,11 @@ Array.from(document.querySelectorAll('.engine-btn')).forEach(btn => {
   const MAX_STRETCH = 56
 
   function enginesInOrder() {
+    const open = switchEl.classList.contains('engines-open')
     return Array.from(switchEl.querySelectorAll('.engine-btn'))
+      // Only buttons actually on screen: when the pill is collapsed the hidden
+      // group has zero width and must not win the drag's nearest match.
+      .filter(btn => open || !btn.closest('.engine-more'))
       .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left)
   }
 
@@ -514,6 +536,8 @@ Array.from(document.querySelectorAll('.engine-btn')).forEach(btn => {
 
   switchEl.addEventListener('pointerdown', function (e) {
     if (pointerId !== null) return
+    // The reveal chevron is a plain control inside the pill, not a drag handle.
+    if (e.target.closest && e.target.closest('#engine-expand')) return
     cancelSpring()
     springExt = 0
     stretchSide = 0
@@ -570,6 +594,7 @@ Array.from(document.querySelectorAll('.engine-btn')).forEach(btn => {
   switchEl.addEventListener('pointercancel', endDrag)
 
   switchEl.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('#engine-expand')) return
     const swallow = handlingPointer || Date.now() < suppressClickUntil
     handlingPointer = false
     if (swallow) {

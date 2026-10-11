@@ -50,6 +50,18 @@ const COMPAXY_SERVERS = [
 ]
 const COMPAXY_SERVER_KEY = 'plu_compaxy_server'
 
+// Rammerhead runs one host per region and takes the target as a `?url=` query on
+// the host root, which redirects into `/<session>/<target>`. No row carries
+// `preferred`: the regions are peers, so the picker uses the same IP lookup and
+// ping race as the wisp relay and Compaxy.
+const RAMMERHEAD_SERVERS = [
+  { id: 'us-east', label: 'US East', location: 'Virginia, USA',      host: 'rammerhead-us-east.plutoniumnet.work', flagSrc: 'img/flags/us.png', lat: 37.4316, lon: -78.6569  },
+  { id: 'us-west', label: 'US West', location: 'Oregon, USA',        host: 'rammerhead-us-west.plutoniumnet.work', flagSrc: 'img/flags/us.png', lat: 43.8041, lon: -120.5542 },
+  { id: 'europe',  label: 'Europe',  location: 'Frankfurt, Germany', host: 'rammerhead-europe.plutoniumnet.work',  flagSrc: 'img/flags/eu.png', lat: 50.1109, lon: 8.6821    },
+  { id: 'asia',    label: 'Asia',    location: 'Singapore',          host: 'rammerhead-asia.plutoniumnet.work',    flagSrc: 'img/flags/sg.png', lat: 1.3521,  lon: 103.8198  },
+]
+const RAMMERHEAD_SERVER_KEY = 'plu_rammerhead_server'
+
 const resolvedRelayUrlCache = new Map()
 
 async function resolveRelayUrl(serverId) {
@@ -105,6 +117,7 @@ let relayPreloadSocket = null
 let currentRelayServerId = RELAY_SERVERS[0] ? RELAY_SERVERS[0].id : ''
 let currentVanilliaServerId = loadVanilliaServerId()
 let currentCompaxyServerId = loadCompaxyServerId()
+let currentRammerheadServerId = loadRammerheadServerId()
 let currentRelayLatencyMs = null
 let bestRelayServerId = ''
 let currentRelayStatus = 'connecting'
@@ -155,6 +168,13 @@ function loadCompaxyServerId() {
   return fallback ? fallback.id : ''
 }
 
+function loadRammerheadServerId() {
+  const stored = localStorage.getItem(RAMMERHEAD_SERVER_KEY)
+  if (stored && RAMMERHEAD_SERVERS.some(server => server.id === stored)) return stored
+  const fallback = getDefaultRammerheadServer()
+  return fallback ? fallback.id : ''
+}
+
 // The row the app falls back to within a source: `preferred` when the source
 // marks one, otherwise the first row (the wisp relay's documented fallback).
 function getPreferredPickerServer(servers = getPickerServers()) {
@@ -163,17 +183,20 @@ function getPreferredPickerServer(servers = getPickerServers()) {
 
 function getDefaultVanilliaServer() { return getPreferredPickerServer(VANILLIA_SERVERS) }
 function getDefaultCompaxyServer() { return getPreferredPickerServer(COMPAXY_SERVERS) }
+function getDefaultRammerheadServer() { return getPreferredPickerServer(RAMMERHEAD_SERVERS) }
 
 function isVanilliaEngine() { return selectedNet === 'vanillia' }
 function isCompaxyEngine() { return selectedNet === 'compaxy' }
-// VanilliaPXY and Compaxy both serve a proxy page from their own hosts, so
-// neither needs a local service worker, wisp relay or BareMux bridge: only the
+function isRammerheadEngine() { return selectedNet === 'rammerhead' }
+// VanilliaPXY, Compaxy and Rammerhead serve a proxy page from their own hosts,
+// so none needs a local service worker, wisp relay or BareMux bridge: only the
 // frame URL changes between them and the wisp engines.
-function isHostProxyEngine() { return isVanilliaEngine() || isCompaxyEngine() }
+function isHostProxyEngine() { return isVanilliaEngine() || isCompaxyEngine() || isRammerheadEngine() }
 
 function getPickerServers() {
   if (isVanilliaEngine()) return VANILLIA_SERVERS
   if (isCompaxyEngine()) return COMPAXY_SERVERS
+  if (isRammerheadEngine()) return RAMMERHEAD_SERVERS
   return RELAY_SERVERS
 }
 
@@ -184,6 +207,7 @@ function getPickerServerById(id) {
 function getPickerServerId() {
   if (isVanilliaEngine()) return currentVanilliaServerId
   if (isCompaxyEngine()) return currentCompaxyServerId
+  if (isRammerheadEngine()) return currentRammerheadServerId
   return currentRelayServerId
 }
 
@@ -204,13 +228,18 @@ function setPickerServerId(id) {
     localStorage.setItem(COMPAXY_SERVER_KEY, id)
     return
   }
+  if (isRammerheadEngine()) {
+    currentRammerheadServerId = id
+    localStorage.setItem(RAMMERHEAD_SERVER_KEY, id)
+    return
+  }
   currentRelayServerId = id
   localStorage.setItem('plu_relay_server', id)
 }
 
 // Ping results are keyed per source: both lists use ids like `europe`, so a
 // shared namespace would let a wisp reading masquerade as a vanillia one.
-function pickerPingKey(id) { return (isVanilliaEngine() ? 'vanillia:' : isCompaxyEngine() ? 'compaxy:' : 'wisp:') + id }
+function pickerPingKey(id) { return (isVanilliaEngine() ? 'vanillia:' : isCompaxyEngine() ? 'compaxy:' : isRammerheadEngine() ? 'rammerhead:' : 'wisp:') + id }
 function wispPingKey(id) { return 'wisp:' + id }
 
 function getVanilliaRouteUrl() {
@@ -240,6 +269,26 @@ function isCompaxyFrameUrl(raw) {
   try {
     const absolute = new URL(raw, window.location.origin)
     return COMPAXY_SERVERS.some(server => server.host === absolute.hostname) && absolute.searchParams.has('url')
+  } catch (e) {
+    return false
+  }
+}
+
+// Rammerhead takes the target as a ?url= query on its host root, then redirects
+// into /<session>/<target>. The entry form is what this builds; both forms are
+// recognised so a frame that has already redirected still decodes.
+function getRammerheadRouteUrl() {
+  const server = getPickerServerById(currentRammerheadServerId) || getDefaultRammerheadServer()
+  return server ? `https://${server.host}/?url=` : ''
+}
+
+// Any rammerhead host decodes, not just the selected one. Accept the entry
+// `?url=` form as well as the post-redirect `/<32-hex-session>/<target>` form.
+function isRammerheadFrameUrl(raw) {
+  try {
+    const absolute = new URL(raw, window.location.origin)
+    if (!RAMMERHEAD_SERVERS.some(server => server.host === absolute.hostname)) return false
+    return absolute.searchParams.has('url') || /^\/[0-9a-f]{32}\//i.test(absolute.pathname)
   } catch (e) {
     return false
   }
@@ -604,9 +653,30 @@ async function measureCompaxyServer(server, options = {}) {
   }
 }
 
+// Rammerhead's root answers with a page rather than a JSON health API and
+// exposes no CORS-readable route, so an opaque no-cors request is the probe: it
+// resolving proves the region answered, which is all the picker needs.
+async function measureRammerheadServer(server, options = {}) {
+  const timeoutMs = options.timeoutMs || RELAY_PING_TIMEOUT_MS
+  if (!server) return { ok: false, latency: null, server }
+
+  const startedAt = performance.now()
+  try {
+    await fetch(`https://${server.host}/`, {
+      mode: 'no-cors',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+    return { ok: true, latency: Math.max(1, Math.round(performance.now() - startedAt)), server }
+  } catch (e) {
+    return { ok: false, latency: null, server }
+  }
+}
+
 function measurePickerServer(server, options) {
   if (isVanilliaEngine()) return measureVanilliaServer(server, options)
   if (isCompaxyEngine()) return measureCompaxyServer(server, options)
+  if (isRammerheadEngine()) return measureRammerheadServer(server, options)
   return measureRelayServer(server, options)
 }
 
@@ -740,7 +810,9 @@ async function chooseBestPickerServer() {
     ? localStorage.getItem(VANILLIA_SERVER_KEY)
     : isCompaxyEngine()
       ? localStorage.getItem(COMPAXY_SERVER_KEY)
-      : (localStorage.getItem('plu_relay_server') || localStorage.getItem('plu_wisp_server'))
+      : isRammerheadEngine()
+        ? localStorage.getItem(RAMMERHEAD_SERVER_KEY)
+        : (localStorage.getItem('plu_relay_server') || localStorage.getItem('plu_wisp_server'))
   if (savedServer && getPickerServerById(savedServer)) {
     setPickerServerId(savedServer)
     currentRelayLatencyMs = null
@@ -823,9 +895,9 @@ async function switchRelayServer(serverId) {
 
   hideRelaySwitcherMenu()
 
-  // A VanilliaPXY or Compaxy server is picked, not connected: the frame just
-  // points at the other host, so there is no socket, bridge or transport to
-  // tear down.
+  // A VanilliaPXY, Compaxy or Rammerhead server is picked, not connected: the
+  // frame just points at the other host, so there is no socket, bridge or
+  // transport to tear down.
   if (isHostProxyEngine()) {
     setPickerServerId(targetServer.id)
     currentRelayLatencyMs = relayPingByServerId.get(pickerPingKey(targetServer.id))?.latency ?? null
@@ -868,7 +940,7 @@ async function switchRelayServer(serverId) {
 let lastPickerSource = ''
 
 function refreshPickerForEngine() {
-  const source = isVanilliaEngine() ? 'vanillia' : isCompaxyEngine() ? 'compaxy' : 'wisp'
+  const source = isVanilliaEngine() ? 'vanillia' : isCompaxyEngine() ? 'compaxy' : isRammerheadEngine() ? 'rammerhead' : 'wisp'
   if (isVanilliaEngine() && !getPickerServerById(currentVanilliaServerId)) {
     const fallback = getDefaultVanilliaServer()
     currentVanilliaServerId = fallback ? fallback.id : ''
@@ -876,6 +948,10 @@ function refreshPickerForEngine() {
   if (isCompaxyEngine() && !getPickerServerById(currentCompaxyServerId)) {
     const fallback = getDefaultCompaxyServer()
     currentCompaxyServerId = fallback ? fallback.id : ''
+  }
+  if (isRammerheadEngine() && !getPickerServerById(currentRammerheadServerId)) {
+    const fallback = getDefaultRammerheadServer()
+    currentRammerheadServerId = fallback ? fallback.id : ''
   }
 
   const cached = relayPingByServerId.get(pickerPingKey(getPickerServerId()))
@@ -931,10 +1007,12 @@ let currentRemoteTargetUrl = null
 function getNetEngine() { return selectedNet }
 
 function setNetEngine(engine) {
-  if (!['core', 'runtime', 'remote', 'vanillia', 'compaxy'].includes(engine)) return
+  if (!['core', 'runtime', 'remote', 'vanillia', 'compaxy', 'rammerhead'].includes(engine)) return
   const previous = selectedNet
   selectedNet = engine
   localStorage.setItem(NET_MODE_KEY, engine)
+  // Keep a revealed engine on screen once it becomes the active one.
+  if (isMoreEngine(engine)) setEnginesOpen(true)
   syncEngineButtons()
   if (window.accountManager && typeof window.accountManager.scheduleSettingsSync === 'function') {
     window.accountManager.scheduleSettingsSync()
@@ -960,8 +1038,40 @@ function syncEngineButtons() {
 
   if (!slider || !switchEl) return
   const activeBtn = switchEl.querySelector('.engine-btn.active')
-  if (!activeBtn) { slider.style.opacity = '0'; return }
+  const open = switchEl.classList.contains('engines-open')
+  // A collapsed pill hides the secondary group; if one of those is the active
+  // engine there is no visible button to sit under, so park the slider.
+  if (!activeBtn || (activeBtn.closest('.engine-more') && !open)) {
+    slider.style.opacity = '0'
+    return
+  }
   positionSlider(slider, switchEl, activeBtn)
+}
+
+// Hyperbeam, Compaxy and VanilliaPXY live in the pill's reveal group. Asking
+// the DOM which group an engine sits in avoids a second hardcoded list that
+// could drift from the markup.
+function isMoreEngine(engine) {
+  const btn = document.querySelector(`.engine-btn[data-engine="${engine}"]`)
+  return !!(btn && btn.closest('.engine-more'))
+}
+
+function setEnginesOpen(open) {
+  const switchEl = document.querySelector('.engine-switch')
+  if (!switchEl) return
+  switchEl.classList.toggle('engines-open', !!open)
+  const toggle = document.getElementById('engine-expand')
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false')
+    toggle.setAttribute('aria-label', open ? 'Hide extra browsing engines' : 'Show extra browsing engines')
+    toggle.title = open ? 'Hide extra engines' : 'Show extra engines'
+  }
+  syncEngineButtons()
+}
+
+function toggleEnginesOpen() {
+  const switchEl = document.querySelector('.engine-switch')
+  setEnginesOpen(!(switchEl && switchEl.classList.contains('engines-open')))
 }
 
 function positionSlider(slider, switchEl, activeBtn) {
@@ -986,6 +1096,7 @@ if (typeof window !== 'undefined' && window.addEventListener) {
 
 window.getNetEngine = getNetEngine
 window.setNetEngine = setNetEngine
+window.toggleEnginesOpen = toggleEnginesOpen
 
 async function initCore() {
   if (coreReady) return true
@@ -1074,9 +1185,9 @@ async function initBridge() {
 async function initNetStack() {
   await initCore()
   await initRuntime()
-  // VanilliaPXY and Compaxy are hosts of their own: they need no BareMux
-  // transport and no wisp relay, and skipping the bridge keeps their connection
-  // status truthful.
+  // VanilliaPXY, Compaxy and Rammerhead are hosts of their own: they need no
+  // BareMux transport and no wisp relay, and skipping the bridge keeps their
+  // connection status truthful.
   if (isHostProxyEngine()) return
   await initBridge()
 }
@@ -1148,6 +1259,7 @@ function getNetUrl(url) {
   if (selectedNet === 'remote') return url
   if (selectedNet === 'vanillia') return getVanilliaRouteUrl() + encodeURIComponent(url)
   if (selectedNet === 'compaxy') return getCompaxyRouteUrl() + encodeURIComponent(url)
+  if (selectedNet === 'rammerhead') return getRammerheadRouteUrl() + encodeURIComponent(url)
   if (selectedNet === 'runtime') {
     if (runtimeReady && runtimeController) return runtimeController.encodeUrl(url)
     return url
@@ -1176,6 +1288,22 @@ function getRealUrlFromNet(maybeNetUrl) {
     if (isCompaxyFrameUrl(maybeNetUrl)) {
       try {
         return new URL(maybeNetUrl, window.location.origin).searchParams.get('url') || maybeNetUrl
+      } catch (e) {}
+    }
+    return maybeNetUrl
+  }
+
+  if (selectedNet === 'rammerhead') {
+    // Any rammerhead host decodes, not just the selected one. The entry form
+    // carries the target in ?url=; after the redirect it lives in the path as
+    // /<session>/<target>, so unwrap whichever form the frame is on.
+    if (isRammerheadFrameUrl(maybeNetUrl)) {
+      try {
+        const absolute = new URL(maybeNetUrl, window.location.origin)
+        const viaQuery = absolute.searchParams.get('url')
+        if (viaQuery) return viaQuery
+        const viaPath = absolute.pathname.match(/^\/[0-9a-f]{32}\/(.+)$/i)
+        if (viaPath) return decodeURIComponent(viaPath[1]) + absolute.search + absolute.hash
       } catch (e) {}
     }
     return maybeNetUrl
@@ -1224,6 +1352,7 @@ function currentEngineLabel() {
     : selectedNet === 'remote' ? 'Hyperbeam'
     : selectedNet === 'vanillia' ? 'VanilliaPXY'
     : selectedNet === 'compaxy' ? 'Compaxy'
+    : selectedNet === 'rammerhead' ? 'Rammerhead'
     : 'UV'
 }
 
@@ -1303,7 +1432,7 @@ function closeNetInfoPopup() {
 async function runNetInit() {
   try {
     await chooseBestPickerServer()
-    lastPickerSource = isVanilliaEngine() ? 'vanillia' : isCompaxyEngine() ? 'compaxy' : 'wisp'
+    lastPickerSource = isVanilliaEngine() ? 'vanillia' : isCompaxyEngine() ? 'compaxy' : isRammerheadEngine() ? 'rammerhead' : 'wisp'
     if (isHostProxyEngine()) {
       // Nothing to preload: a vanillia or compaxy host is probed over HTTP
       // instead.
@@ -1319,6 +1448,9 @@ async function runNetInit() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // A saved secondary engine (Hyperbeam/Compaxy/VanilliaPXY) opens the reveal
+  // group on load, so the active engine is always visible.
+  setEnginesOpen(isMoreEngine(selectedNet))
   initRelayUi()
   runNetInit()
 })

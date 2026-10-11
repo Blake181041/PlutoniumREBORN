@@ -37,6 +37,7 @@
     remote:    'Hyperbeam',
     vanillia:  'VanilliaPXY',
     compaxy:   'Compaxy',
+    rammerhead:'Rammerhead',
   };
 
   let entries       = loadEntries();
